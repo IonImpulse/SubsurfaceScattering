@@ -98,38 +98,58 @@ class Renderer:
     def calculate_subsurface_color(scene: Scene, intersection_point: np.array, normal_at_intersection: np.array) -> np.array:
         """
         This function simulates the subsurface scattering effect at a given
-        intersection point.
+        intersection point using a simple BSSRDF model.
         """
-        # Sample points within a certain radius to simulate light scattering
-        scattering_radius = 0.1  # Adjust this value as needed for your scene
-        samples_count = 100  # Determine how many samples you want to take within the scattering radius
+        # Assuming there's just one material in the scene for simplification
+        material = scene.materials[0]
+        light = scene.lights[0]  # Assuming one direct light source for simplicity
+
+        # Constants and scale factors for the simple BSSRDF model
+        scattering_radius = 0.1  # Adjust this value according to the material's scattering properties
+        samples_count = 25  # The number of samples to evaluate the BSSRDF
+        falloff = 1.0 / (4 * np.pi * scattering_radius**2)  # Simplistic falloff factor based on the scattering radius
+
         sss_color = np.zeros(3)
         
-        for _ in range(samples_count):
-            # Generate a sample point within the scattering radius with some random offset
-            offset = scattering_radius * np.random.randn(3)
+        # Retrieve the material and light color, convert to the range 0 to 1
+        light_color = light.color
+        material_color = material.color
+
+        # Calculate the direction to the light source
+        light_dir = light.position - intersection_point
+        light_distance = np.linalg.norm(light_dir)
+        light_dir /= light_distance  # Normalize
+        light_intensity = light.intensity / (light_distance**2)  # Attenuate based on distance squared
+
+        # Find the light's contribution to the subsurface scattering
+        light_contribution = light_color * light_intensity
+
+        # Iterate over sample points to simulate the BSSRDF
+        for i in range(samples_count):
+            # Generate a sample point within the scattering radius around the point of intersection
+            offset = np.random.uniform(-1, 1, 3)
+            offset /= np.linalg.norm(offset)
+            offset *= scattering_radius * np.sqrt(np.random.uniform(0, 1))  # Ensure uniform distribution over the sphere
+
+            # Sample point is the offset from the intersection point inside the material
             sample_point = intersection_point + offset
             
-            # You may need to calculate the interaction of light within the object here
-            # For simplicity, we'll just take the material color attenuated by the distance from
-            # the original intersection, but in practice, you'd account for things like
-            # the material's scattering properties and perhaps solve a volume scattering equation.
+            # Calculate the distance between the sample point and the original intersection point
+            r = np.linalg.norm(sample_point - intersection_point)
             
-            # Attenuate the color based on the sample distance (this is a simplification)
-            distance = np.linalg.norm(offset)
-            attenuation = np.exp(-distance / scattering_radius)  # Simplified attenuation factor
+            # Rd(r) is the BSSRDF's diffuse reflectance, which diminishes with the square of the distance 
+            Rd = falloff * np.exp(-material.scattering_coefficients * r) / r**2
             
-            # Sum the subsurface color contributions
-            material_color = scene.materials[0].color  # Get the material's base color
-            sss_color += material_color * attenuation
+            # Accumulate the weighted subsurface scattering color
+            sss_color += Rd * material_color * light_contribution
         
-        # Average the SSS contribution from the samples
+        # Divide by the number of samples to normalize the SSS contribution
         sss_color /= samples_count
         
-        # Convert to a range of 0 to 255
+        # Finally, multiply by 255 to adapt the range from [0, 1] to [0, 255] and clamp to valid color values
         sss_color *= 255
         sss_color = np.clip(sss_color, 0, 255)
-        
+
         return sss_color.astype(np.uint8)
         
     @staticmethod

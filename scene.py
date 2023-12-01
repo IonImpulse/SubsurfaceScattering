@@ -6,6 +6,9 @@ from typing import Tuple
 
 
 class BVHNode:
+    """
+    A node in the BVH tree. Each node has a bounding box, and either two children or a list of triangles.
+    """
     def __init__(self):
         self.bbox_min = np.array([float('inf'), float('inf'), float('inf')])
         self.bbox_max = np.array([-float('inf'), -float('inf'), -float('inf')])
@@ -203,7 +206,7 @@ class Scene:
         print("\nCamera:")
         camera = self.camera
         print(f"  Position: {camera['position']}")
-        print(f"  Orientation: {camera['orientation']}")
+        print(f"  Orientation:\n{camera['orientation']}")
         print(f"  Field of View: {camera['fov']} degrees")
 
         print("\n--------------")
@@ -240,13 +243,12 @@ class Scene:
         intersection_point = None
         normal_at_intersection = None
 
-        def traverse(node: BVHNode):
-            nonlocal intersection_found, closest_intersection, intersection_point, normal_at_intersection
-            
-            if node is None:
-                return
-            if not node.ray_intersects_bbox(ray_origin, ray_direction):
-                return
+        # Use a stack instead of the recursive function to traverse the BVH tree
+        stack = [self.bvh]
+        while stack:
+            node = stack.pop()
+            if node is None or not node.ray_intersects_bbox(ray_origin, ray_direction):
+                continue
 
             if node.is_leaf():
                 for triangle in node.triangles:
@@ -258,15 +260,12 @@ class Scene:
                         normal_at_intersection = np.cross(triangle[1] - triangle[0], triangle[2] - triangle[0])
                         normal_at_intersection /= np.linalg.norm(normal_at_intersection)
             else:
-                # Recursive traversal for left and right children
-                traverse(node.left)
-                traverse(node.right)
-
-        # Start traversal from the root
-        traverse(self.bvh)
+                # Add child nodes to the stack
+                stack.append(node.right)
+                stack.append(node.left)
 
         return intersection_found, intersection_point, normal_at_intersection
-    
+        
     @staticmethod
     def look_at(camera_pos, target, up):
         # Calculate forward vector (direction the camera is looking)
