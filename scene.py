@@ -214,7 +214,7 @@ class Scene:
 
     @staticmethod
     def ray_intersects_triangle(ray_origin: np.array, ray_direction: np.array, triangle_vertices: Tuple[np.array]) -> Tuple[bool, float]:
-        """Möller–Trumbore intersection algorithm"""
+        """Möller-Trumbore intersection algorithm"""
         v0, v1, v2 = triangle_vertices
         edge1, edge2 = v1 - v0, v2 - v0
         h = np.cross(ray_direction, edge2)
