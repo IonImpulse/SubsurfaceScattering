@@ -97,7 +97,7 @@ class Material:
         self.color = color
 
 class Scene:
-    def __init__(self, vertices: np.ndarray, normals: np.ndarray, camera_pos: np.ndarray, camera_ori=None):
+    def __init__(self, vertices: np.ndarray, normals: np.ndarray, camera_pos: np.ndarray, camera_ori=None, use_sss=True):
         """
         Setup the scene with the geometry, materials, lights, and camera.
 
@@ -113,6 +113,7 @@ class Scene:
         self.lights = []
         self.camera = {}
         self.bvh = None
+        self.use_sss = use_sss
 
         # Normalize geometry to fit within the unit cube
         min_v = vertices.min(axis=(0, 1))

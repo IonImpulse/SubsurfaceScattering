@@ -22,20 +22,23 @@ class Renderer:
         Extend the function to combine both the Phong lighting and SSS contributions.
         """
         # Calculate the regular Phong lighting color
-        phong_color = Renderer.calculate_phong_color(scene, intersection_point, normal_at_intersection)  # This would be your existing Phong color computation
+        phong_color = Renderer.calculate_phong_color(scene, intersection_point, normal_at_intersection) 
         
-        # Calculate the subsurface scattering color
-        sss_color = Renderer.calculate_subsurface_color(scene, intersection_point, normal_at_intersection)
+        if scene.use_sss:
+            # Calculate the subsurface scattering color
+            sss_color = Renderer.calculate_subsurface_color(scene, intersection_point, normal_at_intersection)
         
-        # Mix the Phong color with the SSS color based on a weighted factor
-        # This weight can be part of the material properties to indicate how strong the SSS effect is for this material
-        sss_weight = 0.3  # Adjust this factor to achieve the desired effect
-        combined_color = (1 - sss_weight) * phong_color + sss_weight * sss_color
+            # Mix the Phong color with the SSS color based on a weighted factor
+            # This weight can be part of the material properties to indicate how strong the SSS effect is for this material
+            sss_weight = 0.3  # Adjust this factor to achieve the desired effect
+            combined_color = (1 - sss_weight) * phong_color + sss_weight * sss_color
+            
+            # Make sure we still respect the 0-255 range
+            combined_color = np.clip(combined_color, 0, 255).astype(np.uint8)
         
-        # Make sure we still respect the 0-255 range
-        combined_color = np.clip(combined_color, 0, 255).astype(np.uint8)
-        
-        return combined_color
+            return combined_color
+        else:
+            return phong_color
 
     @staticmethod
     @jit(forceobj=True, fastmath=True)

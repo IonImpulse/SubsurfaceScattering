@@ -25,6 +25,7 @@ if __name__ == "__main__":
     parser.add_argument("--height", type=int, default=45, help="The height of the output image")
     parser.add_argument("--samples", type=int, default=100, help="The number of samples to take per pixel")
     parser.add_argument("--position", type=float, nargs=3, default=[0, 1, 1], help="The position of the camera")
+    parser.add_argument("--no-sss", action="store_true", help="Disable subsurface scattering")
 
     args = parser.parse_args()
 
@@ -36,7 +37,7 @@ if __name__ == "__main__":
     vertices, normals = load_stl(args.input)
 
     print("Setting up render...")
-    scene = Scene(vertices, normals, args.position)
+    scene = Scene(vertices, normals, args.position, None, not args.no_sss)
 
     print("Rendering image...")
     processed_data = Renderer.render(scene, args.width, args.height, args.samples)
